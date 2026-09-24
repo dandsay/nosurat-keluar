@@ -1,0 +1,37 @@
+{
+  "name": "nosurat-keluar",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sistem Register Agenda Surat Keluar Modern & Zero-Knowledge berbasis Cloudflare Workers dan D1 SQLite",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dandsay/nosurat-keluar.git"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "cloudflare-d1",
+    "zero-knowledge",
+    "agenda-surat",
+    "surat-keluar",
+    "e-government",
+    "open-source",
+    "indonesia"
+  ],
+  "author": "Muhamad Dandy Safitra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dandsay/nosurat-keluar/issues"
+  },
+  "homepage": "https://github.com/dandsay/nosurat-keluar#readme",
+  "scripts": {
+    "dev": "wrangler dev --ip 0.0.0.0 --port 8787",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "d1:local": "wrangler d1 execute agenda-surat-db --local --file=./schema.sql",
+    "d1:remote": "wrangler d1 execute agenda-surat-db --remote --file=./schema.sql"
+  },
+  "dependencies": {
+    "wrangler": "^4.71.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "register-agenda-surat",
+  "compatibility_date": "2026-09-18",
+  "main": "src/index.js",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agenda-surat-db",
+      "database_id": "<DATABASE_ID_D1_ANDA>"
+    }
+  ]
+}
