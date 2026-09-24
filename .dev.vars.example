@@ -1,0 +1,12 @@
+# Konfigurasi variabel rahasia untuk pengembangan lokal (Wrangler Dev)
+# Salin file ini menjadi .dev.vars:
+# cp .dev.vars.example .dev.vars
+
+# Kunci penandatanganan HMAC Session Token (Wajib disetel string acak yang kuat)
+SESSION_SECRET="kunci-rahasia-hmac-acak-minimal-32-karakter-keamanan-2026"
+
+# Hash PBKDF2 dari PIN Otorisasi (dibuat menggunakan: node scripts/generate-pin-hash.js [pin])
+# APP_PIN_HASH="pbkdf2$100000$..."
+
+# Alternatif PIN lokal jika belum menggunakan hash (hanya untuk dev lokal):
+APP_PIN="123456"
