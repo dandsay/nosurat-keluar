@@ -168,20 +168,29 @@ test('portal cipher beku: scramble deterministik ala brankas + terpasang di port
     [PC.PHASE.TYPE, PC.PHASE.SPIN0, PC.PHASE.DECRYPT, PC.PHASE.HOLD, PC.PHASE.ENCRYPT, PC.PHASE.SPIN],
     [24, 14, 24, 22, 24, 19]
   );
-  const base = 'Terenkripsi End-to-end';
+  const base = 'Terenkripsi End-to-End';
   assert.equal(PC.renderCipherTick(base, -1), '');
   assert.equal(PC.renderCipherTick(base, 0), '', 'intro buka dari kosong');
   const tengah = PC.renderCipherTick(base, 11);
   assert.ok(tengah.length > 0 && tengah.length < base.length, 'intro tumbuh bertahap');
   assert.equal(PC.renderCipherTick(base, PC.PHASE.INTRO + PC.PHASE.DECRYPT - 1), base);
   assert.match(PC.rotorTick(0, 0), /^[A-Z]$/);
+  // Paritas engine brankas: QWERTY-Caesar +2, digit utuh, rotor PIN/KEY, slowScramble
+  assert.equal(PC.qwertyShift2('qwerty'), 'ertyui');
+  assert.equal(PC.qwertyShift2('p'), 's');
+  assert.equal(PC.encChar('q', 0, 0, 7), 'E');
+  assert.equal(PC.encChar('5', 0, 3, 7), '5');
+  assert.match(PC.encChar(' ', 0, 5, 7), /^[A-Z]$/);
+  assert.match(PC.slowScramble('Buka', 0), /^[A-Z]+$/);
+  assert.equal(PC.rotorTick(48, 0) + PC.rotorTick(48, 1) + PC.rotorTick(48, 2), 'PIN');
+  assert.equal(PC.rotorTick(120, 0) + PC.rotorTick(120, 1) + PC.rotorTick(120, 2), 'KEY');
   assert.equal(typeof globalThis.window.initPortalCipher, 'function');
   // Intro langsung acak penuh (bukan dari nol): start tick = INTRO - 1
   const cipherSrc = readJS('cipher.js');
   assert.ok(cipherSrc.includes('PHASE.INTRO - 1'), 'intro wajib mulai dari acak penuh');
   // Terpasang hanya pada frasa kunci portal login (selebihnya statis)
   const html = readRoot('public/index.html');
-  assert.match(html, /<span data-scramble[^>]*>Terenkripsi End-to-end<\/span> dengan kunci lokal\./);
+  assert.match(html, /<span data-scramble[^>]*>Terenkripsi End-to-End<\/span> dengan kunci lokal\./);
   assert.match(html, /js\/cipher\.js\?v=/);
   assert.match(html, /prefers-reduced-motion/);
   assert.match(html, /portal-cipher-desc/);

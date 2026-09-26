@@ -1,7 +1,8 @@
 /**
  * Portal Cipher — animasi teks enkripsi ala mesin Enigma pada portal login.
- * Diport dari brankas-esp32 (public/js/cipher.js + initPortalCipher di ui.js),
- * disesuaikan ke gaya skrip klasik tanpa ES module (via window.*).
+ * Engine SAMA dengan brankas-esp32 (public/js/cipher.js):
+ * QWERTY-Caesar +2, rotor PIN/KEY, slowScramble.
+ * Dibungkus klasik window.* (tanpa ES module) untuk agenda surat.
  *
  * Murni deterministik (tanpa Math.random): renderCipherTick(base, tick)
  * me-render satu frame teks untuk tick N. Siklus per baris:
@@ -10,7 +11,7 @@
  */
 
 (function () {
-    var PHASE = {
+    var CIPHER = {
         TYPE: 24,    // intro: ketik acak tumbuh
         SPIN0: 14,   // intro: putar penuh
         DECRYPT: 24, // loop: dekripsi mengetik (benar terbuka kiri->kanan)
@@ -18,8 +19,10 @@
         ENCRYPT: 24, // loop: enkripsi mengetik (acak menutup kiri->kanan)
         SPIN: 19     // loop: putar penuh
     };
-    PHASE.INTRO = PHASE.TYPE + PHASE.SPIN0; // 38
-    PHASE.LOOP = PHASE.DECRYPT + PHASE.HOLD + PHASE.ENCRYPT + PHASE.SPIN; // 89
+    CIPHER.INTRO = CIPHER.TYPE + CIPHER.SPIN0; // 38
+    CIPHER.LOOP = CIPHER.DECRYPT + CIPHER.HOLD + CIPHER.ENCRYPT + CIPHER.SPIN; // 89
+    // Alias beku: test lama memakai PortalCipher.PHASE.
+    var PHASE = CIPHER;
 
     function caesarShiftChar(ch, k) {
         var base = (ch >= "a" && ch <= "z") ? 97 : (ch >= "A" && ch <= "Z") ? 65 : 0;
@@ -27,21 +30,62 @@
         return String.fromCharCode(base + ((ch.charCodeAt(0) - base + k) % 26));
     }
 
+    // --- QWERTY-CAESAR +2: satu rantai 26 huruf urut keyboard,
+    // geser 2 tanpa kembali ke baris sendiri (p->s, l->x, m->w, n->q).
+    var QWERTY_CHAIN = "qwertyuiopasdfghjklzxcvbnm";
+
+    function qwertyStep(text, dir) {
+        return String(text || "").split("").map(function (ch) {
+            var idx = QWERTY_CHAIN.indexOf(ch.toLowerCase());
+            if (idx < 0) return ch; // non-huruf: utuh (panjang 1:1 terjaga)
+            var mapped = QWERTY_CHAIN[(idx + dir + 26) % 26];
+            return (ch >= "A" && ch <= "Z") ? mapped.toUpperCase() : mapped;
+        }).join("");
+    }
+
+    /** Caesar QWERTY+2 (maju). Murni. */
+    function qwertyShift2(text) {
+        return qwertyStep(text, 2);
+    }
+
     function encChar(ch, i, tick, speed) {
-        var k;
+        // Easter egg QWERTY-Caesar: huruf BERPUTAR di atas baris keyboard dengan
+        // basis +2 (tick 0 = pola familiar qwerty->ertyui), lalu melangkah tiap
+        // tick sampai fasenya tiba. Digit utuh, spasi/simbol -> huruf.
         if (/[A-Za-z]/.test(ch)) {
-            k = 1 + ((tick * speed + i * 11) % 25);
-            return String.fromCharCode(65 + ((ch.toUpperCase().charCodeAt(0) - 65 + k) % 26));
+            var idx = QWERTY_CHAIN.indexOf(ch.toLowerCase());
+            if (idx >= 0) {
+                var step = 2 + tick * speed + i * 11;
+                var pos = (idx + step) % 26;
+                if (pos === idx) pos = (pos + 1) % 26; // tak pernah identik dgn asli (anti hold-palsu)
+                return QWERTY_CHAIN[pos].toUpperCase(); // scramble selalu caps
+            }
         }
-        if (/[0-9]/.test(ch)) {
-            k = 1 + ((tick * speed + i * 11) % 25);
-            return String.fromCharCode(48 + ((ch.charCodeAt(0) - 48 + k) % 10));
-        }
+        if (/[0-9]/.test(ch)) return ch;
         return String.fromCharCode(65 + ((tick * speed + i * 17) % 26)); // spasi/simbol -> huruf
     }
 
     function rotorTick(tick, i) {
-        return String.fromCharCode(65 + (Math.floor(tick / [1, 3, 9][i]) % 26));
+        // Rotor kadang mengeja kata dengan mendarat LEMBUT: tiap rotor mengunci/
+        // melepas pada waktunya sendiri mengikuti kecepatan putarnya (lambat
+        // mengunci dulu, cepat terakhir — seperti pengereman; lepas sebaliknya).
+        // "PIN" = petunjuk asli; "KEY" = pengecoh untuk orang yang tidak tahu.
+        // Murni & deterministik. Periode 144 tick (~17 dtk @117ms).
+        var SPEEDS = [1, 3, 9]; // cepat -> lambat
+        var PERIOD = 144;
+        var WORDS = [
+            { word: "PIN", lockAt: [48, 44, 40], releaseAt: [56, 59, 62] },
+            { word: "KEY", lockAt: [120, 116, 112], releaseAt: [128, 131, 134] }
+        ];
+        if (i >= 0 && i < 3) {
+            var phase = ((tick % PERIOD) + PERIOD) % PERIOD;
+            for (var w = 0; w < WORDS.length; w++) {
+                var wd = WORDS[w];
+                if (phase >= wd.lockAt[i] && phase < wd.releaseAt[i]) return wd.word[i];
+            }
+        }
+        var step = SPEEDS[i] || 1;
+        return String.fromCharCode(65 + ((((Math.floor(tick / step)) % 26) + 26) % 26));
     }
 
     function fullScramble(chars, tick) {
@@ -59,6 +103,14 @@
             else out += encChar(chars[i], i, tick, 7);
         }
         return out;
+    }
+
+    /** Scramble lambat untuk label tombol: selalu terenkripsi (caps),
+     * tak pernah dekripsi. Murni. */
+    function slowScramble(base, tick) {
+        return String(base || "").split("").map(function (ch, i) {
+            return encChar(ch, i, tick, 3);
+        }).join("");
     }
 
     // Render satu frame teks untuk tick N (N<0 -> kosong). Murni, tanpa efek samping.
@@ -111,19 +163,45 @@
         nodes.forEach(function (n) { n.el._cipherTimer = timer; });
     }
 
+    // Kabel DOM + timer untuk [data-slow-scramble] (selalu terenkripsi, 1 detik).
+    // Disediakan agar paritas dengan brankas; tidak aktif bila tanpa node.
+    function initSlowCipher() {
+        if (typeof document === "undefined" || !document.querySelectorAll) return;
+        var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-slow-scramble]"))
+            .map(function (el) { return { el: el, base: el.textContent || "" }; })
+            .filter(function (n) { return n.base.length > 0; });
+        if (nodes.length === 0 || nodes[0].el._slowTimer) return;
+        if (typeof window !== "undefined" && window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        var tick = 0;
+        nodes.forEach(function (n) { n.el.textContent = slowScramble(n.base, tick); });
+        var timer = setInterval(function () {
+            tick++;
+            nodes.forEach(function (n) {
+                n.el.textContent = slowScramble(n.base, tick);
+            });
+        }, 1000);
+        nodes.forEach(function (n) { n.el._slowTimer = timer; });
+    }
+
     var root = (typeof window !== "undefined") ? window : globalThis;
     root.PortalCipher = {
         PHASE: PHASE,
+        CIPHER: CIPHER,
         caesarShiftChar: caesarShiftChar,
         encChar: encChar,
+        qwertyShift2: qwertyShift2,
         rotorTick: rotorTick,
+        slowScramble: slowScramble,
         renderCipherTick: renderCipherTick
     };
     root.initPortalCipher = initPortalCipher;
+    root.initSlowCipher = initSlowCipher;
 
     if (typeof document !== "undefined" && document.addEventListener) {
         document.addEventListener("DOMContentLoaded", function () {
             root.initPortalCipher();
+            root.initSlowCipher();
         });
     }
 })();
