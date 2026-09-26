@@ -479,17 +479,11 @@ function renderTable() {
             ? `<span class="inline-block bg-indigo-100 text-indigo-900 border border-indigo-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">${escapeHtml(item.display_no)}</span>`
             : `<span class="font-bold text-slate-700">${item.no_urut}</span>`;
 
-        // Flag penanda data hasil sinkronisasi spreadsheet lama
-        const flagSync = item.sumber === "spreadsheet" 
-            ? `<span class="inline-block text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1 py-0.2 rounded tracking-tight" title="Data arsip hasil sinkronisasi spreadsheet">Sheet</span>` 
-            : '';
-
         // 1. Render Desktop Table Row
         desktopHTML += `
             <tr class="border-b border-slate-200/80 ${rowBg} transition text-slate-800">
                 <td class="py-3 px-3 text-center w-16">
                     ${noBadge}
-                    ${flagSync ? `<div class="mt-0.5">${flagSync}</div>` : ''}
                 </td>
                 <td class="py-3 px-3 whitespace-nowrap">
                     <div class="font-mono text-xs font-bold text-blue-700 select-all cursor-pointer inline-flex items-center gap-1 hover:text-blue-900" title="Klik untuk salin" onclick="salinNomorLengkap('${escapeHtml(item.nomor_lengkap_decrypted)}')">
@@ -547,7 +541,6 @@ function renderTable() {
                             ? `<span class="bg-indigo-100 text-indigo-900 border border-indigo-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg">${escapeHtml(item.display_no)}</span>`
                             : `<span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">${item.no_urut}</span>`
                         }
-                        ${flagSync}
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeBgBentuk}">
                             ${isESurat ? 'eSurat' : 'Manual'}
                         </span>
@@ -927,7 +920,6 @@ function bukaBottomSheetDetail(id, isMundur) {
     // 1. Header Badge Nomor & Bentuk
     const badgeNo = document.getElementById("sheetBadgeNo");
     const badgeBentuk = document.getElementById("sheetBadgeBentuk");
-    const badgeSync = document.getElementById("sheetBadgeSync");
 
     if (badgeNo) {
         badgeNo.innerText = item.is_mundur ? item.display_no : `#${item.no_urut}`;
@@ -940,14 +932,6 @@ function bukaBottomSheetDetail(id, isMundur) {
         const isESurat = item.bentuk_surat === "eSurat (Elektronik)";
         badgeBentuk.innerText = isESurat ? "eSurat" : "Surat Manual";
         badgeBentuk.className = `text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isESurat ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`;
-    }
-
-    if (badgeSync) {
-        if (item.sumber === "spreadsheet") {
-            badgeSync.classList.remove("hidden");
-        } else {
-            badgeSync.classList.add("hidden");
-        }
     }
 
     // 2. Isi Konten Rincian

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "algo": "sha256",
+  "files": {
+    "public/js/agenda.js": "69b6d1a5aae52a4ede7b9db10f9f50248e0e86a213430b5702cc0340e138bedd",
+    "public/js/auth.js": "14f7b45ceae407dae5f98fad10e06e975af33a7016923a38d9bb3fb87965b518",
+    "public/js/cipher.js": "c84612895fd930d70ea02876b891464eb0dbde2a6375645eab56fe6cd16eb631",
+    "public/js/crypto.js": "7cb28de26d691e38ed246b828b6af4e7884a50b3d7b98e031a3c02059325bfb3",
+    "public/js/export.js": "b8a185260a582b55363d8cf1c86440bc68059017c1e8f385270c702170fc126f",
+    "public/js/mundur.js": "e22e580e46c933a341edd954aa7d4d4b2632adca8585793406bd6018ccc49891",
+    "public/js/stats.js": "aadc8bb1fef8e9aaf95f66d4d1ba61ea03dce4a4b2fd8e783246f5419f0acb5c",
+    "public/js/table.js": "bbd0a65cc391135c4c3988db622b003816707af6452b27a34ca1b66597c6e83a",
+    "schema.sql": "e4d07bc1a11e7a1063422abc66f476198129456407a5f628bda7ef8469f7cc86",
+    "scripts/freeze.mjs": "5520fb81c6bd8cb796c482937b62ff5b980c4149754f5f52134eee98c2ab6537",
+    "src/index.js": "42e1d36c5294d66b9bd07ead828e4e3907e19ec2153f4c93e5850cb5c6f1149a",
+    "src/routes/agenda.js": "9c7212981234063409e90d2eb7cb92ff35929ad87584afeef10b52c94d3f0bf8",
+    "src/routes/auth.js": "dedea9612df14d48740020af091b3a9e01d47fec302cfd945b5fc296fd7cb376",
+    "src/routes/mundur.js": "2568fe93bbf78ecd1499fffea90f7395088b469c6221d3e0e1b1a9ed987a89ac",
+    "src/routes/stats.js": "ccdbf459a3d20a4eee92cbd6c7178dd72b4665dd192b50a67ccb9a891548c55d",
+    "src/utils/auth-crypto.js": "343e86f4b3bd52453a28b87f670f125a96c4f7c4433e75dccb97b1c4afb56b0d",
+    "src/utils/holidays.js": "e6f1487cd31e9ba3f73aaa944550d54b6a9cc0cf9a2cb56df247a1a31230297a",
+    "src/utils/response.js": "9b9573a7c311e486327a63530d12c44dab93670edcbd664200d98af7d347d041",
+    "wrangler.jsonc": "88d2e4e1bf6fc69440904844bff35272ca11a03df3118ecd0af9c19c8a052965"
+  }
+}

@@ -74,6 +74,39 @@
         .flatpickr-weekday:first-child, span.flatpickr-weekday:first-child {
             color: #ef4444 !important; /* Hari Minggu berwarna merah khas Indonesia */
         }
+
+        /* Portal Cipher — animasi teks enkripsi ala brankas (scramble deterministik). */
+        [data-scramble] {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
+        }
+        #loginModal .portal-cipher-desc {
+            min-height: 1.2rem;
+            display: block;
+        }
+        /* Aksen frasa enkripsi: mono tebal biru agar terlihat seperti segel */
+        #loginModal .portal-cipher-desc .cipher-accent {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-weight: 700;
+            color: #1d4ed8;
+            white-space: nowrap;
+        }
+        .spin-shadow {
+            animation: shadow-orbit 3.2s linear infinite;
+        }
+        @keyframes shadow-orbit {
+            0% { text-shadow: 2px 0 0 rgba(37, 99, 235, 0.22); }
+            25% { text-shadow: 0 2px 0 rgba(37, 99, 235, 0.22); }
+            50% { text-shadow: -2px 0 0 rgba(139, 92, 246, 0.22); }
+            75% { text-shadow: 0 -2px 0 rgba(139, 92, 246, 0.22); }
+            100% { text-shadow: 2px 0 0 rgba(37, 99, 235, 0.22); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .spin-shadow {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen flex flex-col selection:bg-blue-600 selection:text-white">
@@ -101,6 +134,7 @@
                 </button>
             </form>
             <p class="text-[11px] text-slate-400 mt-3.5">Akses khusus staf internal Kelurahan Alun-Alun Contong.</p>
+            <p class="text-[11px] text-slate-400 mt-1.5 portal-cipher-desc"><span data-scramble class="spin-shadow cipher-accent">Terenkripsi End-to-end</span> dengan kunci lokal.</p>
             
             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center">
                 <a href="https://github.com/dandsay/nosurat-keluar" target="_blank" rel="noopener noreferrer"
@@ -920,7 +954,6 @@
                 <div class="flex items-center gap-2">
                     <span id="sheetBadgeNo" class="font-mono text-xs font-black px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">#0</span>
                     <span id="sheetBadgeBentuk" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border">eSurat</span>
-                    <span id="sheetBadgeSync" class="hidden text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Sheet</span>
                 </div>
                 <button onclick="tutupBottomSheetDetail()" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Tutup">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -1039,12 +1072,13 @@
     </script>
 
     <!-- App JavaScript Modules (dengan Cache Buster) -->
-    <script src="js/crypto.js?v=20260923-v1"></script>
-    <script src="js/auth.js?v=20260923-v1"></script>
-    <script src="js/agenda.js?v=20260923-v1"></script>
-    <script src="js/mundur.js?v=20260923-v1"></script>
-    <script src="js/table.js?v=20260923-v1"></script>
-    <script src="js/stats.js?v=20260923-v1"></script>
-    <script src="js/export.js?v=20260923-v1"></script>
+    <script src="js/crypto.js?v=20260925-cleanup"></script>
+    <script src="js/cipher.js?v=20260926-cipher"></script>
+    <script src="js/auth.js?v=20260925-cleanup"></script>
+    <script src="js/agenda.js?v=20260925-cleanup"></script>
+    <script src="js/mundur.js?v=20260925-cleanup"></script>
+    <script src="js/table.js?v=20260925-cleanup"></script>
+    <script src="js/stats.js?v=20260925-cleanup"></script>
+    <script src="js/export.js?v=20260925-cleanup"></script>
 </body>
 </html>

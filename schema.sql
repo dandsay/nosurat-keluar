@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS agenda_surat (
     instansi_encrypted TEXT NOT NULL,         -- Ciphertext Nama Instansi Yang Dituju
     petugas_encrypted TEXT NOT NULL,          -- Ciphertext Nama Staf Penginput
     
-    sumber TEXT DEFAULT 'aplikasi',           -- Sumber pencatatan ('aplikasi')
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
