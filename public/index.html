@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <title>Agenda Surat Keluar | Kelurahan Alun-Alun Contong</title>
     
-    <!-- Favicon Logo Pemkot Surabaya -->
     <link rel="icon" type="image/svg+xml" href="img/logo-surabaya.svg">
 
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,13 +29,11 @@
         }
     </script>
     
-    <!-- Google Fonts & Lucide Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Flatpickr (Kalender dengan fitur disable hari libur akhir pekan) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
@@ -74,32 +73,70 @@
         .flatpickr-weekday:first-child, span.flatpickr-weekday:first-child {
             color: #ef4444 !important; /* Hari Minggu berwarna merah khas Indonesia */
         }
+
+        /* Portal Cipher — animasi teks enkripsi ala brankas (scramble deterministik). */
+        [data-scramble] {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
+        }
+        #loginModal .portal-cipher-desc {
+            min-height: 1.2rem;
+            display: block;
+        }
+        /* Aksen frasa enkripsi: mono tebal biru agar terlihat seperti segel */
+        #loginModal .portal-cipher-desc .cipher-accent {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-weight: 700;
+            color: #1d4ed8;
+            white-space: nowrap;
+        }
+        .spin-shadow {
+            animation: shadow-orbit 3.2s linear infinite;
+        }
+        @keyframes shadow-orbit {
+            0% { text-shadow: 2px 0 0 rgba(37, 99, 235, 0.22); }
+            25% { text-shadow: 0 2px 0 rgba(37, 99, 235, 0.22); }
+            50% { text-shadow: -2px 0 0 rgba(139, 92, 246, 0.22); }
+            75% { text-shadow: 0 -2px 0 rgba(139, 92, 246, 0.22); }
+            100% { text-shadow: 2px 0 0 rgba(37, 99, 235, 0.22); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .spin-shadow {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen flex flex-col selection:bg-blue-600 selection:text-white">
 
-    <!-- ============================================================== -->
-    <!-- 1. MODAL LOGIN PORTAL (DENGAN LOGO RESMI PEMKOT SURABAYA)     -->
-    <!-- ============================================================== -->
     <div id="loginModal" class="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl max-w-xs sm:max-w-sm w-full p-5 sm:p-6 border border-slate-200 text-center animate-in fade-in zoom-in-95 duration-150">
-            <div class="w-14 h-14 mx-auto mb-3 flex items-center justify-center p-2 bg-slate-50 border border-slate-200 rounded-2xl shadow-2xs">
-                <img src="img/logo-surabaya.svg" alt="Logo Pemkot Surabaya" class="w-10 h-10 object-contain">
+            <div id="loginLogoSecret" class="w-14 h-14 mx-auto mb-3 flex items-center justify-center p-2 bg-slate-50 border border-slate-200 rounded-2xl shadow-2xs select-none" title="Portal">
+                <img src="img/logo-surabaya.svg" alt="Logo Pemkot Surabaya" class="w-10 h-10 object-contain pointer-events-none">
             </div>
             <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 uppercase tracking-wide">Agenda Surat Keluar</h2>
             <p class="text-xs text-slate-500 mt-0.5 mb-4 font-semibold uppercase tracking-wider">Kelurahan Alun-Alun Contong &bull; Kota Surabaya</p>
-            
-            <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-3">
-                <div>
-                    <input type="password" id="inputPin" placeholder="Masukkan PIN Akses" autocomplete="current-password"
-                        class="w-full text-center tracking-widest text-xl font-mono py-2.5 px-3 bg-slate-50 border border-slate-300 rounded-xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold placeholder:text-xs placeholder:font-normal placeholder:tracking-normal" required autofocus>
-                </div>
-                <div id="loginError" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2 rounded-lg"></div>
-                <button type="submit" id="btnLogin" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
-                    <span>Buka Portal</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </button>
-            </form>
+
+            <div id="portalTutupState" class="hidden">
+                <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Portal Istirahat Malam</h3>
+                <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Layanan agenda dibuka pukul <span class="font-bold text-slate-700">06.00–21.00 WIB</span>.<br>Silakan kembali pada jam layanan.</p>
+            </div>
+
+            <div id="portalLoginState">
+                <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-3">
+                    <div>
+                        <input type="password" id="inputPin" name="portal-pin" placeholder="Masukkan PIN Akses" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false"
+                            class="w-full text-center tracking-widest text-xl font-mono py-2.5 px-3 bg-slate-50 border border-slate-300 rounded-xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold placeholder:text-xs placeholder:font-normal placeholder:tracking-normal" required>
+                    </div>
+                    <div id="loginError" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2 rounded-lg"></div>
+                    <button type="submit" id="btnLogin" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
+                        <span>Buka Portal</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </form>
+                <p class="text-[11px] text-slate-400 mt-1.5 portal-cipher-desc"><span data-scramble class="cipher-accent">Terenkripsi End-to-End</span> dengan kunci lokal.</p>
+            </div>
             <p class="text-[11px] text-slate-400 mt-3.5">Akses khusus staf internal Kelurahan Alun-Alun Contong.</p>
             
             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center">
@@ -115,12 +152,8 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 2. MAIN APP CONTENT (NAVBAR DENGAN LOGO PEMKOT SURABAYA)      -->
-    <!-- ============================================================== -->
     <div id="mainApp" class="flex-1 flex flex-col hidden">
         
-        <!-- NAVBAR -->
         <nav class="bg-slate-900 text-white sticky top-0 z-30 border-b border-slate-800 shadow-md">
             <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-14 sm:h-16">
@@ -133,7 +166,6 @@
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <!-- DROPDOWN TAHUN [2026 ▼] -->
                         <div id="wrapperSelectTahun" class="relative flex items-center transition-opacity duration-200">
                             <select id="selectTahun" onchange="handleFilterTahun(this.value)" class="appearance-none bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold pl-2.5 pr-6 py-2 rounded-lg border border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition shadow-2xs" title="Pilih Tahun">
                                 <option value="2026">2026</option>
@@ -141,7 +173,6 @@
                             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-1.5 pointer-events-none"></i>
                         </div>
 
-                        <!-- TOMBOL KUNCI / LOGOUT -->
                         <button onclick="handleLogout()" title="Kunci Aplikasi" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
                             <i data-lucide="lock" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                         </button>
@@ -150,10 +181,8 @@
             </div>
         </nav>
 
-        <!-- MAIN CONTAINER (LEBAR MAX-W-7XL YANG NYAMAN) -->
         <main class="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5 flex-1">
 
-            <!-- STATISTIK RINGKAS CARDS (KOMPAK MOBILE) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <div class="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-xs">
                     <div class="text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold text-slate-500 truncate">Total Tahun Ini</div>
@@ -180,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- TAB NAVIGASI UTAMA (CHIP TAB COMPACT TANPA SCROLL) -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
                 <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80 w-full sm:w-auto sm:inline-flex sm:items-center sm:gap-1.5">
                     <button id="navTabTable" onclick="switchNavTab('table')" 
@@ -203,9 +231,6 @@
                 </div>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 3. VIEW 1: FORM PENERBITAN NOMOR AGENDA REGULER           -->
-            <!-- ========================================================== -->
             <div id="viewFormSection" class="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-7 shadow-sm max-w-3xl mx-auto">
                 <div class="text-center mb-3.5 sm:mb-5 pb-2.5 sm:pb-3 border-b border-slate-100">
                     <h2 class="text-sm sm:text-lg font-extrabold text-slate-900 uppercase tracking-wide">Form Register Agenda Surat Keluar</h2>
@@ -214,7 +239,6 @@
 
                 <form id="formAgenda" onsubmit="handleTerbitkanNomor(event)" class="space-y-3 sm:space-y-4">
 
-                    <!-- Baris 1: Petugas & Kode Klasifikasi -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="petugas" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -241,7 +265,6 @@
                         </div>
                     </div>
 
-                    <!-- Baris 2: Perihal Surat -->
                     <div>
                         <label for="perihal" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Perihal Surat <span class="text-rose-500">*</span>
@@ -250,7 +273,6 @@
                             class="w-full text-xs sm:text-sm py-2 sm:py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50 transition font-medium">
                     </div>
 
-                    <!-- Baris 3: Nama Instansi Yang Dituju -->
                     <div>
                         <label for="instansi" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Nama Instansi Yang Dituju <span class="text-rose-500">*</span>
@@ -259,7 +281,6 @@
                             class="w-full text-xs sm:text-sm py-2 sm:py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50 transition font-medium">
                     </div>
 
-                    <!-- Baris 4: Tanggal Surat & Tanggal Kirim -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="tglSurat" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -280,7 +301,6 @@
                         </div>
                     </div>
 
-                    <!-- Baris 5: Penanggung Jawab & Bentuk Surat -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="penanggungJawab" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -310,7 +330,6 @@
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
                     <button type="submit" id="btnSimpan" 
                         class="w-full py-2.5 sm:py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-2 mt-3 sm:mt-4">
                         <i data-lucide="send" class="w-4 h-4"></i> Simpan & Terbitkan Nomor Agenda
@@ -318,9 +337,6 @@
                 </form>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 4. VIEW 2: FORMULIR PINTAR PENERBITAN NOMOR MUNDUR         -->
-            <!-- ========================================================== -->
             <div id="viewMundurSection" class="hidden bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-7 shadow-sm max-w-3xl mx-auto">
                 <div class="text-center mb-3.5 sm:mb-5 pb-2.5 sm:pb-3 border-b border-slate-100">
                     <h2 class="text-sm sm:text-lg font-extrabold text-slate-900 uppercase tracking-wide">Form Register Agenda Nomor Mundur</h2>
@@ -329,7 +345,6 @@
 
                 <form id="formSmartNomorMundur" onsubmit="handleTerbitkanSmartNomorMundur(event)" class="space-y-3 sm:space-y-4">
 
-                    <!-- Baris 1: Petugas & Kode Klasifikasi -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="smartMundurPetugas" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -356,7 +371,6 @@
                         </div>
                     </div>
 
-                    <!-- Baris 2: Perihal Surat -->
                     <div>
                         <label for="smartMundurPerihal" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Perihal Surat <span class="text-rose-500">*</span>
@@ -365,7 +379,6 @@
                             class="w-full text-xs sm:text-sm py-2 sm:py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50 transition font-medium">
                     </div>
 
-                    <!-- Baris 3: Nama Instansi Yang Dituju -->
                     <div>
                         <label for="smartMundurInstansi" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Nama Instansi Yang Dituju <span class="text-rose-500">*</span>
@@ -374,7 +387,6 @@
                             class="w-full text-xs sm:text-sm py-2 sm:py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50 transition font-medium">
                     </div>
 
-                    <!-- Baris 4: Tanggal Surat & Tanggal Kirim -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="smartMundurTglSurat" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -395,7 +407,6 @@
                         </div>
                     </div>
 
-                    <!-- Baris 5: Penanggung Jawab & Bentuk Surat -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
                         <div>
                             <label for="smartMundurPenanggungJawab" class="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -425,7 +436,6 @@
                         </div>
                     </div>
 
-                    <!-- Area Tombol / Informasi Status Terpadu -->
                     <div id="smartMundurActionArea">
                         <button type="submit" id="btnSimpanSmartMundur" 
                             class="w-full py-2.5 sm:py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-2 mt-3 sm:mt-4">
@@ -436,17 +446,11 @@
                 </form>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 5. VIEW 3: BUKU AGENDA TERPADU (REGULER + NOMOR MUNDUR)    -->
-            <!-- ========================================================== -->
             <div id="viewTableSection" class="hidden space-y-4">
                 
-                <!-- Filter Bar & Search -->
                 <div class="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-sm space-y-3">
                     
-                    <!-- DESKTOP TOP BAR (Hanya Tampil di Desktop sm:) -->
                     <div class="hidden sm:flex items-center justify-between gap-3">
-                        <!-- Tab Bentuk Surat di Desktop -->
                         <div class="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/60">
                             <button id="btnTabAll" onclick="setFilterBentuk('ALL')" 
                                 class="py-1.5 px-3 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition text-center">
@@ -466,7 +470,6 @@
                             </button>
                         </div>
 
-                        <!-- Pengelola Filter & Ekspor CSV Desktop -->
                         <div class="flex items-center gap-2">
                             <select id="selectPengelola" onchange="handleFilterPengelola(this.value)" 
                                 class="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 py-2 px-3 rounded-xl focus:ring-1 focus:ring-blue-500">
@@ -485,7 +488,6 @@
                         </div>
                     </div>
 
-                    <!-- SEARCH INPUT (Dengan Tombol Simbol Filter Mobile di Sampingnya) -->
                     <div class="flex items-center gap-2">
                         <div class="relative flex-1">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
@@ -494,7 +496,6 @@
                                 class="w-full pl-9 pr-3 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-100 transition">
                         </div>
 
-                        <!-- Tombol Simbol Filter untuk Mobile (Membuka Bottom Sheet Pengelola & Ekspor) -->
                         <button type="button" onclick="bukaBottomSheetFilterMobile()" id="btnFilterMobile" title="Filter Pengelola & Ekspor" 
                             class="sm:hidden relative p-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl border border-slate-200 transition shrink-0 active:scale-95 flex items-center justify-center">
                             <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
@@ -502,7 +503,6 @@
                         </button>
                     </div>
 
-                    <!-- MOBILE CHIP TABS: Dibawah Kolom Search (Hanya Tampil di Mobile) -->
                     <div class="sm:hidden grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/60 w-full">
                         <button id="btnTabAllMobile" onclick="setFilterBentuk('ALL')" 
                             class="py-1.5 px-1 rounded-lg text-[11px] font-bold bg-blue-600 text-white shadow-xs transition text-center flex items-center justify-center">
@@ -524,19 +524,20 @@
 
                     <div class="flex items-center justify-between text-xs text-slate-500 pt-1 font-medium">
                         <span id="countInfo">Memuat daftar agenda...</span>
-                        <button onclick="loadAgendaData()" class="text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1">
-                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Segarkan Data
-                        </button>
+                        <span class="inline-flex items-center gap-2">
+                            <span id="chainInfo" class="hidden font-mono text-[10px] text-slate-400 select-none" title="Status catatan berantai" onclick="if (typeof ChainUI !== 'undefined') ChainUI.refresh()"></span>
+                            <button onclick="loadAgendaData()" class="text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Segarkan Data
+                            </button>
+                        </span>
                     </div>
                 </div>
 
-                <!-- Table Loading Indicator -->
                 <div id="tableLoading" class="hidden py-10 text-center">
                     <div class="inline-block animate-spin text-blue-600"><i data-lucide="loader-2" class="w-8 h-8"></i></div>
                     <p class="text-xs text-slate-500 mt-2 font-semibold">Memuat buku agenda...</p>
                 </div>
 
-                <!-- Desktop Table (Urutan Sesuai Induk) -->
                 <div class="hidden md:block bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
@@ -552,25 +553,20 @@
                                 </tr>
                             </thead>
                             <tbody id="agendaTableBody" class="divide-y divide-slate-100">
-                                <!-- Rendered via JS -->
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Mobile List Cards -->
                 <div id="agendaMobileList" class="md:hidden space-y-3">
-                    <!-- Rendered via JS -->
                 </div>
 
-                <!-- Pagination Container -->
                 <div id="paginationContainer"></div>
 
             </div>
 
         </main>
 
-        <!-- FOOTER RESMI KELURAHAN & SUMBER TERBUKA (OPEN SOURCE) -->
         <footer class="mt-auto py-5 border-t border-slate-200 bg-white text-center text-xs text-slate-500 font-medium">
             <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
                 <p>Dikembangkan oleh Kelurahan Alun-Alun Contong &bull; 2026</p>
@@ -590,17 +586,12 @@
 
 
 
-    <!-- ============================================================== -->
-    <!-- CUSTOM APP ALERT MODAL (Pengganti dialog browser window)       -->
-    <!-- ============================================================== -->
     <div id="customAlertModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 text-center border border-slate-100 animate-in fade-in zoom-in-95 duration-150 space-y-4">
-            <!-- Icon Badge -->
             <div id="customAlertIconContainer" class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto ring-8 ring-amber-50/60">
                 <i id="customAlertIcon" data-lucide="alert-triangle" class="w-7 h-7"></i>
             </div>
             
-            <!-- Title & Message -->
             <div>
                 <h3 id="customAlertTitle" class="text-base sm:text-lg font-extrabold text-slate-900">Peringatan Administrasi</h3>
                 <p id="customAlertMessage" class="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed break-words text-center">
@@ -608,7 +599,6 @@
                 </p>
             </div>
 
-            <!-- Tombol Mengerti / Tutup -->
             <div class="pt-2">
                 <button type="button" onclick="closeCustomAlert()" id="customAlertBtn"
                     class="w-full py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/20 transition">
@@ -618,9 +608,6 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 8. MODAL POPUP: HASIL TERBITAN NOMOR AGENDA (DESAIN TENGAH)   -->
-    <!-- ============================================================== -->
     <div id="hasilModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 text-center border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
             
@@ -671,9 +658,6 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 9. MODAL EDIT AGENDA                                          -->
-    <!-- ============================================================== -->
     <div id="modalEdit" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -759,9 +743,6 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 9. MODAL KONFIRMASI HAPUS DATA (DENGAN VERIFIKASI NAMA PETUGAS)-->
-    <!-- ============================================================== -->
     <div id="modalHapus" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
             
@@ -817,14 +798,10 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 10. BOTTOM SHEET MODAL: FILTER PENGELOLA & EKSPOR (MOBILE)     -->
-    <!-- ============================================================== -->
     <div id="bottomSheetFilterModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
         <div class="absolute inset-0" onclick="tutupBottomSheetFilterMobile()"></div>
 
         <div id="bottomSheetFilterCard" class="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-5 border border-slate-200 max-h-[85vh] flex flex-col z-10 transform transition-transform duration-300 ease-out translate-y-full sm:translate-y-0">
-            <!-- Drag Handle Bar -->
             <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-3.5 shrink-0 cursor-pointer" onclick="tutupBottomSheetFilterMobile()"></div>
 
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
@@ -840,7 +817,6 @@
             </div>
 
             <div class="py-3.5 space-y-4 flex-1 overflow-y-auto">
-                <!-- Pilihan Pengelola -->
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                         Filter Berdasarkan Pengelola
@@ -879,7 +855,6 @@
                     </div>
                 </div>
 
-                <!-- Opsi Ekspor CSV -->
                 <div class="pt-2 border-t border-slate-100">
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                         Ekspor Data Agenda
@@ -902,38 +877,27 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- 11. BOTTOM SHEET MODAL: DETAIL & AKSI AGENDA SURAT (BAWAH LAYAR) -->
-    <!-- ============================================================== -->
     <div id="bottomSheetModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
-        <!-- Backdrop Tap to Dismiss -->
         <div class="absolute inset-0" onclick="tutupBottomSheetDetail()"></div>
 
-        <!-- Kartu Slide-up dari Bawah Layar -->
         <div id="bottomSheetCard" class="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg p-5 sm:p-6 border border-slate-200 max-h-[88vh] flex flex-col z-10 transform transition-transform duration-300 ease-out translate-y-full sm:translate-y-0">
             
-            <!-- Handle Drag Bar untuk Mobile -->
             <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-3.5 sm:hidden shrink-0 cursor-pointer" onclick="tutupBottomSheetDetail()"></div>
 
-            <!-- Header Bottom Sheet -->
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
                 <div class="flex items-center gap-2">
                     <span id="sheetBadgeNo" class="font-mono text-xs font-black px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">#0</span>
                     <span id="sheetBadgeBentuk" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border">eSurat</span>
-                    <span id="sheetBadgeSync" class="hidden text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Sheet</span>
                 </div>
                 <button onclick="tutupBottomSheetDetail()" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Tutup">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <!-- Konten Rincian (Scrollable jika layar pendek) -->
             <div class="overflow-y-auto py-3 space-y-3 flex-1 text-xs">
-                <!-- Nomor Agenda Lengkap & Tombol Salin di Luar Kotak -->
                 <div>
                     <div class="flex items-center justify-between gap-2 mb-1.5">
                         <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nomor Agenda Lengkap</span>
-                        <!-- Tombol Salin di Luar Kotak agar Nomor Tidak Menyempit -->
                         <button id="btnSheetCopy" onclick="salinNomorDariSheet()" class="py-1 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition shadow-2xs active:scale-95">
                             <i data-lucide="copy" class="w-3 h-3"></i>
                             <span>Salin Nomor</span>
@@ -946,7 +910,6 @@
                     </div>
                 </div>
 
-                <!-- Perihal Surat -->
                 <div>
                     <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">Perihal Surat</span>
                     <div id="sheetPerihal" class="text-xs sm:text-sm font-semibold text-slate-900 leading-snug bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 break-words">
@@ -954,7 +917,6 @@
                     </div>
                 </div>
 
-                <!-- Instansi Tujuan -->
                 <div>
                     <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">Instansi Yang Dituju</span>
                     <div id="sheetInstansi" class="text-xs font-medium text-slate-800 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 break-words">
@@ -962,7 +924,6 @@
                     </div>
                 </div>
 
-                <!-- Grid Rincian 4 Kotak -->
                 <div class="grid grid-cols-2 gap-2 text-xs">
                     <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
                         <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Tanggal Surat</span>
@@ -983,14 +944,13 @@
                             <i data-lucide="clock" class="w-3 h-3 text-slate-400 shrink-0"></i>
                             <span id="sheetWaktuInput">-</span>
                         </div>
+                        <div id="sheetChainLine" class="text-[10px] text-slate-400 mt-0.5 font-medium"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer Tombol Aksi di Bawah Sheet (Thumb-Friendly) -->
             <div class="pt-3 border-t border-slate-100 flex flex-col gap-2 shrink-0">
                 <div id="sheetActionsContainer" class="flex items-center gap-2">
-                    <!-- Dinamis: Tombol + Mundur, Edit, Hapus -->
                 </div>
                 <button type="button" onclick="tutupBottomSheetDetail()" class="w-full py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-98 transition text-center">
                     Tutup
@@ -1000,7 +960,171 @@
         </div>
     </div>
 
-    <!-- Nav Tab Switcher Script -->
+    <div id="chainHistoryModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 border border-slate-200 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+                <h3 id="chainHistoryTitle" class="text-sm font-extrabold text-slate-900">Riwayat catatan</h3>
+                <button type="button" onclick="ChainUI.closeHistory()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div id="chainHistoryBody" class="pt-4 overflow-y-auto"></div>
+            <button type="button" onclick="ChainUI.closeHistory()" class="mt-4 w-full py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-98 transition text-center shrink-0">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Tirai malam MENYATU di modal login: ganti form PIN (bukan overlay terpisah).
+        // Saat tirai aktif: form disembunyikan + input dikosongkan & disabled + tombol disabled,
+        // sehingga password-manager tidak bisa autofill dan Enter/Tab tidak bisa submit.
+        // CATATAN: ini penutup UI saja, API tetap menjawab bila dipanggil langsung.
+        // Satu-satunya tombol rahasia: klik logo 5x cepat. Sekali dibuka, berlaku untuk tab ini saja.
+        window.PortalMalam = (function () {
+            var JAM_BUKA = 6;   // 06.00 WIB
+            var JAM_TUTUP = 21; // 21.00 WIB ke atas = tutup
+            var KUNCI_SESI = "portal_malam_dibuka";
+
+            function jamWIB() {
+                try {
+                    var parts = new Intl.DateTimeFormat("id-ID", {
+                        timeZone: "Asia/Jakarta", hour: "2-digit", hour12: false
+                    }).formatToParts(new Date());
+                    for (var i = 0; i < parts.length; i++) {
+                        if (parts[i].type === "hour") return parseInt(parts[i].value, 10) % 24;
+                    }
+                } catch (e) {}
+                return new Date().getHours();
+            }
+
+            function jamTutupSekarang() {
+                var h = jamWIB();
+                return h < JAM_BUKA || h >= JAM_TUTUP;
+            }
+
+            function sudahDibuka() {
+                try { return sessionStorage.getItem(KUNCI_SESI) === "1"; }
+                catch (e) { return false; }
+            }
+
+            function sudahLogin() {
+                try {
+                    return !!sessionStorage.getItem("agenda_session_token");
+                } catch (e) { return false; }
+            }
+
+            // Tirai dianggap aktif bila: jam tutup + belum dibuka rahasia + belum login.
+            function tiraiAktif() {
+                if (sudahDibuka()) return false;
+                if (sudahLogin()) return false;
+                return jamTutupSekarang();
+            }
+
+            function kunciForm() {
+                var tutup = document.getElementById("portalTutupState");
+                var login = document.getElementById("portalLoginState");
+                if (tutup) tutup.classList.remove("hidden");
+                if (login) {
+                    login.classList.add("hidden");
+                    login.setAttribute("inert", "");
+                    login.setAttribute("aria-hidden", "true");
+                }
+                var pin = document.getElementById("inputPin");
+                if (pin) {
+                    pin.value = "";
+                    pin.disabled = true;
+                    pin.setAttribute("aria-hidden", "true");
+                    pin.setAttribute("tabindex", "-1");
+                    pin.removeAttribute("autofocus");
+                    pin.blur();
+                }
+                var btn = document.getElementById("btnLogin");
+                if (btn) btn.disabled = true;
+                var form = document.getElementById("formLogin");
+                if (form) {
+                    form.setAttribute("inert", "");
+                    form.setAttribute("aria-hidden", "true");
+                }
+            }
+
+            function bukaForm() {
+                var tutup = document.getElementById("portalTutupState");
+                var login = document.getElementById("portalLoginState");
+                if (tutup) tutup.classList.add("hidden");
+                if (login) {
+                    login.classList.remove("hidden");
+                    login.removeAttribute("inert");
+                    login.removeAttribute("aria-hidden");
+                }
+                var pin = document.getElementById("inputPin");
+                if (pin) {
+                    pin.disabled = false;
+                    pin.removeAttribute("aria-hidden");
+                    pin.removeAttribute("tabindex");
+                }
+                var btn = document.getElementById("btnLogin");
+                if (btn) btn.disabled = false;
+                var form = document.getElementById("formLogin");
+                if (form) {
+                    form.removeAttribute("inert");
+                    form.removeAttribute("aria-hidden");
+                }
+            }
+
+            function terapkanTirai() {
+                if (tiraiAktif()) { kunciForm(); return true; }
+                bukaForm(); return false;
+            }
+
+            function bukaPortalMalam() {
+                try { sessionStorage.setItem(KUNCI_SESI, "1"); } catch (e) {}
+                bukaForm();
+                var pin = document.getElementById("inputPin");
+                if (pin) setTimeout(function () { pin.focus(); }, 100);
+                // Bila PIN tersimpan, lanjutkan auto-login yang tadi ditahan tirai.
+                try {
+                    var saved = sessionStorage.getItem("agenda_app_pin");
+                    if (saved && !sudahLogin() && typeof doLogin === "function") doLogin(saved);
+                } catch (e) {}
+            }
+
+            function pasangRahasia() {
+                var logo = document.getElementById("loginLogoSecret");
+                if (!logo || logo.dataset.rahasiaTerpasang === "1") return;
+                logo.dataset.rahasiaTerpasang = "1";
+                logo.style.cursor = "pointer";
+                var hit = 0, timer = null;
+                logo.addEventListener("click", function () {
+                    if (!tiraiAktif()) return;
+                    hit++;
+                    if (!timer) timer = setTimeout(function () { hit = 0; timer = null; }, 3000);
+                    if (hit >= 5) {
+                        clearTimeout(timer); timer = null; hit = 0;
+                        bukaPortalMalam();
+                    }
+                });
+            }
+
+            function init() {
+                pasangRahasia();
+                terapkanTirai();
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", init);
+            } else {
+                init();
+            }
+
+            return {
+                tiraiAktif: tiraiAktif,
+                terapkanTirai: terapkanTirai,
+                bukaPortalMalam: bukaPortalMalam
+            };
+        })();
+    </script>
+
     <script>
         function switchNavTab(tab) {
             const btnTable = document.getElementById("navTabTable");
@@ -1038,13 +1162,14 @@
         }
     </script>
 
-    <!-- App JavaScript Modules (dengan Cache Buster) -->
-    <script src="js/crypto.js?v=20260923-v1"></script>
-    <script src="js/auth.js?v=20260923-v1"></script>
-    <script src="js/agenda.js?v=20260923-v1"></script>
-    <script src="js/mundur.js?v=20260923-v1"></script>
-    <script src="js/table.js?v=20260923-v1"></script>
-    <script src="js/stats.js?v=20260923-v1"></script>
-    <script src="js/export.js?v=20260923-v1"></script>
+    <script src="js/crypto.js?v=20260925-cleanup"></script>
+    <script src="js/cipher.js?v=20260926-qwerty"></script>
+    <script src="js/auth.js?v=20260925-cleanup"></script>
+    <script src="js/agenda.js?v=20260925-cleanup"></script>
+    <script src="js/mundur.js?v=20260925-cleanup"></script>
+    <script src="js/table.js?v=20260925-cleanup"></script>
+    <script src="js/chain.js?v=20260928-rantai"></script>
+    <script src="js/stats.js?v=20260925-cleanup"></script>
+    <script src="js/export.js?v=20260925-cleanup"></script>
 </body>
 </html>

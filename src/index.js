@@ -18,6 +18,7 @@ import {
     handleDeleteNomorMundur 
 } from "./routes/mundur.js";
 import { handleStats } from "./routes/stats.js";
+import { handleChainVerify, handleChainHistory, handleChainBackfill } from "./routes/chain.js";
 
 export default {
     async fetch(request, env, ctx) {
@@ -65,6 +66,19 @@ export default {
             return handleStats(request, env, url);
         }
 
+        // 3.3 Rantai Berantai: verifikasi, riwayat per nomor, backfill sekali jalan
+        if (url.pathname === "/api/chain/verify" && request.method === "GET") {
+            return handleChainVerify(request, env, url);
+        }
+
+        if (url.pathname === "/api/chain/history" && request.method === "GET") {
+            return handleChainHistory(request, env, url);
+        }
+
+        if (url.pathname === "/api/chain/backfill" && request.method === "POST") {
+            return handleChainBackfill(request, env);
+        }
+
         // 3.4 Agenda Reguler: List, Create & Next Number
         if (url.pathname === "/api/agenda/next-number" && request.method === "GET") {
             return handleGetNextNumber(request, env, url);
@@ -106,8 +120,12 @@ export default {
         }
 
         // 4. Static Assets Fallthrough (Frontend UI)
+        // Anti-crawler: semua aset statis diberi X-Robots-Tag agar tidak diindeks.
         if (env.ASSETS) {
-            return env.ASSETS.fetch(request);
+            const res = await env.ASSETS.fetch(request);
+            const headers = new Headers(res.headers);
+            headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+            return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
         }
 
         return new Response("Not Found", { status: 404 });

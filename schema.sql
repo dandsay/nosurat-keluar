@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS agenda_surat (
     instansi_encrypted TEXT NOT NULL,         -- Ciphertext Nama Instansi Yang Dituju
     petugas_encrypted TEXT NOT NULL,          -- Ciphertext Nama Staf Penginput
     
-    sumber TEXT DEFAULT 'aplikasi',           -- Sumber pencatatan ('aplikasi')
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,3 +62,39 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mundur_unik ON agenda_nomor_mundur(tahun, 
 CREATE INDEX IF NOT EXISTS idx_mundur_tgl ON agenda_nomor_mundur(tgl_surat);
 CREATE INDEX IF NOT EXISTS idx_mundur_tahun ON agenda_nomor_mundur(tahun);
 CREATE INDEX IF NOT EXISTS idx_mundur_tahun_bentuk ON agenda_nomor_mundur(tahun, bentuk_surat);
+
+
+-- 3. LEDGER RANTAI: Jejak Berantai (Hash-Chain) Seluruh Mutasi Nomor
+-- Append-only: setiap terbit/koreksi/hapus di kedua tabel di atas menambah
+-- SATU blok di sini. Blok lama tidak pernah diubah/dihapus.
+-- Zero-knowledge tetap: snapshot berisi ciphertext + metadata non-sensitif saja.
+CREATE TABLE IF NOT EXISTS agenda_chain (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tahun INTEGER NOT NULL,                   -- Tahun terbit nomor yang dirujuk
+    kind TEXT NOT NULL,                       -- 'terbit' | 'koreksi' | 'hapus'
+    ref_kind TEXT NOT NULL,                   -- 'reguler' | 'mundur'
+    ref_id INTEGER NOT NULL,                  -- id baris di tabel asal
+    ref_no TEXT NOT NULL,                     -- '123' (reguler) atau '400.1' (mundur)
+    tgl_surat TEXT NOT NULL,
+    tgl_kirim TEXT,
+    bentuk_surat TEXT NOT NULL,
+
+    -- Salinan snapshot saat blok dibuat (ciphertext, sama seperti tabel asal)
+    kode_klasifikasi_encrypted TEXT NOT NULL,
+    nomor_lengkap_encrypted TEXT NOT NULL,
+    penanggung_jawab_encrypted TEXT NOT NULL,
+    perihal_encrypted TEXT NOT NULL,
+    instansi_encrypted TEXT NOT NULL,
+    petugas_encrypted TEXT NOT NULL,
+
+    payload_hash TEXT NOT NULL,               -- SHA-256 hex kanonikal snapshot
+    prev_hash TEXT NOT NULL,                  -- block_hash blok sebelumnya ('GENESIS' untuk pertama)
+    block_hash TEXT NOT NULL,                 -- SHA-256 hex(prev_hash|kind|ref|payload_hash)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Linearitas rantai: tiap prev_hash hanya dipakai satu blok (cegah fork diam-diam).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chain_block ON agenda_chain(block_hash);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chain_prev ON agenda_chain(prev_hash);
+CREATE INDEX IF NOT EXISTS idx_chain_ref ON agenda_chain(ref_kind, ref_id);
+CREATE INDEX IF NOT EXISTS idx_chain_tahun ON agenda_chain(tahun);

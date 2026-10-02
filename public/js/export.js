@@ -22,11 +22,11 @@ function eksporKeCSV() {
 
     const rows = filteredAgenda.map(item => [
         item.display_no || item.no_urut,
-        `"${(item.nomor_lengkap || "").replace(/"/g, '""')}"`,
+        `"${(item.nomor_lengkap_decrypted || "").replace(/"/g, '""')}"`,
         `"${formatTanggalIndo(item.tgl_surat)}"`,
         `"${(item.perihal_decrypted || "").replace(/"/g, '""')}"`,
         `"${(item.instansi_decrypted || "").replace(/"/g, '""')}"`,
-        `"${(item.penanggung_jawab || "").replace(/"/g, '""')}"`,
+        `"${(item.penanggung_jawab_decrypted || "").replace(/"/g, '""')}"`,
         `"${item.tgl_kirim ? formatTanggalIndo(item.tgl_kirim) : '-'}"`,
         `"${(item.bentuk_surat || "").replace(/"/g, '""')}"`,
         `"${(item.petugas_decrypted || "").replace(/"/g, '""')}"`

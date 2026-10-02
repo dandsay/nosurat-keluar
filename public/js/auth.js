@@ -123,6 +123,14 @@ window.showToast = showToast;
 document.addEventListener("DOMContentLoaded", async () => {
     if (window.lucide) lucide.createIcons();
 
+    // Tirai malam menyatu: tahan auto-login + bersihkan field agar password-manager tak bisa membocorkan PIN.
+    if (window.PortalMalam && window.PortalMalam.tiraiAktif()) {
+        const pinEl = document.getElementById("inputPin");
+        if (pinEl) pinEl.value = "";
+        window.PortalMalam.terapkanTirai();
+        return;
+    }
+
     // Pulihkan sesi PIN jika tersimpan di sessionStorage
     const savedPin = sessionStorage.getItem("agenda_app_pin");
     if (savedPin) {
@@ -134,6 +142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Handler Form Login
 async function handleLogin(e) {
     if (e) e.preventDefault();
+    // Tirai malam menyatu: tolak submit selama form dikunci (c egah Enter/submit programatik).
+    if (window.PortalMalam && window.PortalMalam.tiraiAktif()) return;
     const pin = document.getElementById("inputPin").value.trim();
     const errEl = document.getElementById("loginError");
     errEl.classList.add("hidden");
@@ -153,6 +163,8 @@ async function handleLogin(e) {
 
 // Proses Eksekusi Login & Penurunan Kunci AES-GCM (Zero-Knowledge)
 async function doLogin(pin) {
+    // Tirai malam menyatu: tolak login programatik/konsol selama tirai aktif.
+    if (window.PortalMalam && window.PortalMalam.tiraiAktif()) return false;
     const btn = document.getElementById("btnLogin");
     if (btn) btn.disabled = true;
 
@@ -212,4 +224,6 @@ function handleLogout() {
     document.getElementById("inputPin").value = "";
     document.getElementById("mainApp").classList.add("hidden");
     document.getElementById("loginModal").classList.remove("hidden");
+    // Keluar saat jam tutup: kembalikan tirai menyatu (kunci form lagi).
+    if (window.PortalMalam) window.PortalMalam.terapkanTirai();
 }

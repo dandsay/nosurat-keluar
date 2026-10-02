@@ -217,6 +217,8 @@ async function loadAgendaData() {
         currentPage = 1;
         applyClientFilters();
         updateStatsFromClient(allAgenda);
+        // Status rantai mikro (tidak memblokir tabel, badge versi menyusul)
+        if (typeof ChainUI !== "undefined") ChainUI.refresh();
     } catch (err) {
         console.error("Gagal load data agenda:", err);
         showAppAlert("Terjadi kesalahan memuat buku agenda: " + (err.message || err), "error", "Gagal Memuat Data");
@@ -478,18 +480,15 @@ function renderTable() {
         const noBadge = item.is_mundur
             ? `<span class="inline-block bg-indigo-100 text-indigo-900 border border-indigo-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">${escapeHtml(item.display_no)}</span>`
             : `<span class="font-bold text-slate-700">${item.no_urut}</span>`;
-
-        // Flag penanda data hasil sinkronisasi spreadsheet lama
-        const flagSync = item.sumber === "spreadsheet" 
-            ? `<span class="inline-block text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1 py-0.2 rounded tracking-tight" title="Data arsip hasil sinkronisasi spreadsheet">Sheet</span>` 
-            : '';
+        // Cuil rantai mikro di bawah nomor (kosong bila belum berantai)
+        const chainMicro = (typeof ChainUI !== "undefined") ? ChainUI.micro(item) : "";
 
         // 1. Render Desktop Table Row
         desktopHTML += `
             <tr class="border-b border-slate-200/80 ${rowBg} transition text-slate-800">
                 <td class="py-3 px-3 text-center w-16">
                     ${noBadge}
-                    ${flagSync ? `<div class="mt-0.5">${flagSync}</div>` : ''}
+                    ${chainMicro ? `<div class="mt-0.5 flex justify-center">${chainMicro}</div>` : ""}
                 </td>
                 <td class="py-3 px-3 whitespace-nowrap">
                     <div class="font-mono text-xs font-bold text-blue-700 select-all cursor-pointer inline-flex items-center gap-1 hover:text-blue-900" title="Klik untuk salin" onclick="salinNomorLengkap('${escapeHtml(item.nomor_lengkap_decrypted)}')">
@@ -522,6 +521,10 @@ function renderTable() {
                 </td>
                 <td class="py-3 px-3 text-center whitespace-nowrap">
                     <div class="flex items-center justify-center gap-1">
+                        ${item._rantai ? `
+                        <button onclick="ChainUI.openHistory(${item.id}, ${item.is_mundur})" title="Riwayat catatan" class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition">
+                            <i data-lucide="history" class="w-4 h-4"></i>
+                        </button>` : ""}
                         <button onclick="bukaModalEdit(${item.id}, ${item.is_mundur})" title="Edit Data" class="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                         </button>
@@ -547,7 +550,7 @@ function renderTable() {
                             ? `<span class="bg-indigo-100 text-indigo-900 border border-indigo-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg">${escapeHtml(item.display_no)}</span>`
                             : `<span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">${item.no_urut}</span>`
                         }
-                        ${flagSync}
+                        ${chainMicro}
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeBgBentuk}">
                             ${isESurat ? 'eSurat' : 'Manual'}
                         </span>
@@ -927,7 +930,6 @@ function bukaBottomSheetDetail(id, isMundur) {
     // 1. Header Badge Nomor & Bentuk
     const badgeNo = document.getElementById("sheetBadgeNo");
     const badgeBentuk = document.getElementById("sheetBadgeBentuk");
-    const badgeSync = document.getElementById("sheetBadgeSync");
 
     if (badgeNo) {
         badgeNo.innerText = item.is_mundur ? item.display_no : `#${item.no_urut}`;
@@ -940,14 +942,6 @@ function bukaBottomSheetDetail(id, isMundur) {
         const isESurat = item.bentuk_surat === "eSurat (Elektronik)";
         badgeBentuk.innerText = isESurat ? "eSurat" : "Surat Manual";
         badgeBentuk.className = `text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isESurat ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`;
-    }
-
-    if (badgeSync) {
-        if (item.sumber === "spreadsheet") {
-            badgeSync.classList.remove("hidden");
-        } else {
-            badgeSync.classList.add("hidden");
-        }
     }
 
     // 2. Isi Konten Rincian
@@ -970,12 +964,24 @@ function bukaBottomSheetDetail(id, isMundur) {
     const elWaktu = document.getElementById("sheetWaktuInput");
     if (elWaktu) elWaktu.innerText = formatWaktuIndo(item.created_at);
 
+    // Baris rantai mikro (cuplikan hash + versi, dimuat asinkron)
+    if (typeof ChainUI !== "undefined") ChainUI.fillSheetLine(item);
+
     // 3. Tombol Aksi Thumb-Friendly di Footer Sheet
     const actionsContainer = document.getElementById("sheetActionsContainer");
     if (actionsContainer) {
         let actionHTML = "";
 
-
+        // Tombol Riwayat (hanya bila baris sudah berantai)
+        if (item._rantai) {
+            actionHTML += `
+                <button type="button" onclick="ChainUI.openHistory(${item.id}, ${item.is_mundur});"
+                    class="flex-1 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 shadow-2xs">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                    <span>Riwayat</span>
+                </button>
+            `;
+        }
 
         // Tombol Edit (Tersedia untuk Surat Reguler & Nomor Mundur)
         actionHTML += `
@@ -1046,10 +1052,60 @@ function salinNomorDariSheet() {
 // MODAL KONFIRMASI HAPUS DENGAN VERIFIKASI NAMA PETUGAS PEMBUAT
 // ==============================================================
 var deletingTargetItem = null;
+var pendingEditSetelahPaham = null;
+
+// Peringatan bertahap anti-balapan modal: tampilkan alasan dulu,
+// formulir Edit baru dibuka setelah pengguna menekan "Saya Mengerti".
+function tampilkanPeringatanKunciHapus(pesan, id, isMundur) {
+    pendingEditSetelahPaham = { id, isMundur };
+    showAppAlert(pesan, "warning", "Nomor Tidak Dapat Dihapus");
+    const btn = document.getElementById("customAlertBtn");
+    if (btn) {
+        btn.innerText = "Saya Mengerti";
+        btn.onclick = () => {
+            closeCustomAlert();
+            const target = pendingEditSetelahPaham;
+            pendingEditSetelahPaham = null;
+            btn.onclick = () => closeCustomAlert();
+            if (target) bukaModalEdit(target.id, target.isMundur);
+        };
+    }
+}
+
+// KETAT: hanya nomor terakhir yang boleh hapus.
+// Kembalikan alasan penguncian bila terkunci, null bila boleh hapus.
+function alasanKunciHapus(item) {
+    if (!item || typeof allAgenda === "undefined") return null;
+    if (!item.is_mundur) {
+        const seTahun = allAgenda.filter(a => !a.is_mundur && a.tahun === item.tahun);
+        const maxNo = seTahun.reduce((m, a) => Math.max(m, a.no_urut || 0), 0);
+        if ((item.no_urut || 0) < maxNo) {
+            return `Nomor #${item.no_urut} tidak dapat dihapus karena Nomor #${maxNo} telah terbit setelahnya. Penghapusan akan menimbulkan celah pada urutan agenda dan memutus kesinambungan riwayat pencatatan. Untuk memperbaiki isi surat, silakan gunakan menu Edit. Hubungi administrator apabila diperlukan tindakan khusus.`;
+        }
+        const punyaAnak = allAgenda.some(a => a.is_mundur && a.tahun === item.tahun && a.nomor_induk === item.no_urut);
+        if (punyaAnak) {
+            return `Nomor #${item.no_urut} tidak dapat dihapus karena masih memiliki nomor susulan (nomor mundur) yang tercatat di bawahnya. Penghapusan akan menyebabkan nomor susulan kehilangan rujukan induknya. Selesaikan terlebih dahulu nomor susulan tersebut atau hubungi administrator. Untuk memperbaiki isi surat, silakan gunakan menu Edit.`;
+        }
+        return null;
+    }
+    const seInduk = allAgenda.filter(a => a.is_mundur && a.tahun === item.tahun && a.nomor_induk === item.nomor_induk);
+    const maxSub = seInduk.reduce((m, a) => Math.max(m, a.sub_nomor || 0), 0);
+    if ((item.sub_nomor || 0) < maxSub) {
+        return `Nomor ${item.display_no} tidak dapat dihapus karena Nomor ${item.nomor_induk}.${maxSub} telah terbit setelahnya. Penghapusan akan menimbulkan celah pada urutan dan memutus kesinambungan riwayat pencatatan. Untuk memperbaiki isi surat, silakan gunakan menu Edit. Hubungi administrator apabila diperlukan tindakan khusus.`;
+    }
+    return null;
+}
 
 function bukaModalHapus(id, isMundur) {
     const item = allAgenda.find(a => a.id === id && a.is_mundur === isMundur);
     if (!item) return;
+
+    // Nomor terkunci: tampilkan peringatan dulu, Edit menyusul setelah "Saya Mengerti".
+    const alasan = alasanKunciHapus(item);
+    if (alasan) {
+        tampilkanPeringatanKunciHapus(alasan, id, isMundur);
+        return;
+    }
 
     deletingTargetItem = item;
 
@@ -1128,6 +1184,15 @@ async function eksekusiHapusData(e) {
             }
             showToast(isMundur ? "Nomor mundur berhasil dihapus!" : "Agenda berhasil dihapus!");
         } else {
+            // Otoritatif server: nomor terkunci tampilkan peringatan dulu, Edit menyusul.
+            if (result.kode === "NOMOR_TERKUNCI") {
+                const targetId = id;
+                const targetMundur = isMundur;
+                const pesan = result.error || "Nomor tidak dapat dihapus karena bukan nomor terakhir. Gunakan menu Edit.";
+                tutupModalHapus();
+                tampilkanPeringatanKunciHapus(pesan, targetId, targetMundur);
+                return;
+            }
             if (errorMsg) {
                 errorMsg.innerText = result.error || "Gagal menghapus data dari server";
                 errorMsg.classList.remove("hidden");
