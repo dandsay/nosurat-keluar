@@ -1,20 +1,29 @@
-# ARSITEKTUR BEKU — Register Agenda Surat Keluar
+# ARSITEKTUR BEKU — Register Agenda Surat Keluar (Hono + TS)
 
 Dokumen ini adalah kontrak. Perubahan apa pun di bawah ini **wajib**
 disertai pembaruan `tests/arch.test.mjs` + alasan eksplisit di commit.
-Pola dipelajari dari `brankas-esp32` (byte-freeze + gate sebelum deploy).
+Pola dipelajari dari `brankas-esp32` dan diport dari
+`register_agenda_surat/ARCHITECTURE.md` (byte-freeze + gate sebelum deploy).
+
+Perbedaan kontrak vs versi vanilla: router manual `if-pathname` + `handleX`
+diganti idiom Hono (`app.route` + `sessionGate` + `c.req.*`), dan
+`src/**/*.js` diganti `src/**/*.ts` + `tsconfig.json`. Logika bisnis
+**tidak diubah** — invarian di bawah tetap dipin dengan cara yang sama.
 
 ## Lapisan (tetap)
 
 | Lapisan | Isi | Aturan |
 |---|---|---|
 | `public/js/*.js` | 9 modul tanpa build (crypto, cipher portal, auth, agenda, mundur, table, stats, export, chain) | Daftar file beku; kosmetik (`index.html`/`css`/`img`) tidak dibekukan |
-| `src/*.js` | Router + Bearer gatekeeper + ASSETS fallthrough | Endpoint inti stabil (lihat bawah) |
-| `src/routes/*.js` | 5 route: auth, agenda, mundur, stats, chain | Handler inti tidak boleh hilang/rename diam-diam |
-| `src/utils/*.js` | auth-crypto, chain (hash ledger), holidays (WIB/weekend), response | Parameter kripto + kalender dinas + kanonikal rantai dipin |
+| `src/index.ts` | App Hono + `cors()` + `sessionGate` + mount + ASSETS fallthrough | Mount 5 router stabil (lihat bawah) |
+| `src/types.ts` | `Env` + `SessionPayload` + `EncryptedFields` | Tipe binding D1/ASSETS/secrets dipin |
+| `src/middleware/auth.ts` | `sessionGate` Bearer HMAC | Satu-satunya jalan masuk `/api/*` |
+| `src/routes/*.ts` | 4 router: auth, agenda, mundur, misc (stats+chain) | Handler inti tidak boleh hilang/rename diam-diam |
+| `src/utils/*.ts` | auth-crypto, chain (hash ledger), holidays (WIB/weekend) | Parameter kripto + kalender dinas + kanonikal rantai dipin |
+| `tsconfig.json` | `strict: true` | Jaminan tipe backend, bagian dari freeze |
 | D1 | `agenda_surat` + `agenda_nomor_mundur` + `agenda_chain` (ledger append-only) | 6 kolom `*_encrypted` + indeks unik first-class |
-| `tests/` | Gerbang pengaman (node bawaan) | Hijau = syarat deploy |
-| `scripts/freeze.mjs` + `freeze.manifest.json` | SHA-256 per file (22 file) | 1 byte berubah → gate merah → deploy batal |
+| `tests/` | Gerbang pengaman (node bawaan, type-stripping TS) | Hijau = syarat deploy |
+| `scripts/freeze.mjs` + `freeze.manifest.json` | SHA-256 per file (23 file) | 1 byte berubah → gate merah → deploy batal |
 
 ## Invarian keamanan (diuji)
 
@@ -22,10 +31,12 @@ Pola dipelajari dari `brankas-esp32` (byte-freeze + gate sebelum deploy).
    IV acak 12-byte via `crypto.getRandomValues` — angka/format ini dipin di tes.
 2. Server: verifikasi PIN PBKDF2-SHA256 **100.000 iterasi** (`APP_PIN_HASH` format
    `pbkdf2$iter$salt$hash`) + `timingSafeEqual` + session HMAC-SHA256 **12 jam** Bearer.
-3. Acak hanya `crypto.getRandomValues` — `Math.random(` dilarang di seluruh area beku.
+3. Acak hanya `crypto.getRandomValues` — `Math.random(` dilarang di seluruh area beku
+   (termasuk `.ts`).
 4. Server tidak pernah melihat plaintext (hanya ciphertext + kolom non-sensitif
    `tahun/no_urut/tgl_surat/tgl_kirim/bentuk_surat/nomor_induk/sub_nomor/no_urut_lengkap`).
-5. Semua `/api/*` (kecuali `/api/auth/verify`) wajib lewat `verifySessionToken`, gagal → 401.
+5. Semua `/api/*` (kecuali `POST /api/auth/verify`) wajib lewat `sessionGate`,
+   gagal → 401. `/health` satu-satunya rute non-API publik.
 
 ## Invarian administrasi (diuji — jangan dilonggarkan diam-diam)
 
@@ -52,7 +63,7 @@ Pola dipelajari dari `brankas-esp32` (byte-freeze + gate sebelum deploy).
    hapus (tombstone berisi snapshot terakhir) saat delete fisik.
 2. `payload_hash = SHA256(kanonikal snapshot ciphertext + metadata)`,
    `block_hash = SHA256(prev_hash|kind|ref|payload_hash)`, blok pertama
-   `prev_hash = 'GENESIS'`. Kanonikal di `src/utils/chain.js` dipin.
+   `prev_hash = 'GENESIS'`. Kanonikal di `src/utils/chain.ts` dipin.
 3. Linearitas: `UNIQUE(prev_hash)` + retry fork — dua penulis di head yang
    sama tidak bisa bercabang diam-diam; yang kalah mengulang dari head baru.
 4. Koreksi/hapus atomic via `DB.batch([operasional, rantai])`. Terbit
@@ -76,8 +87,8 @@ Pola dipelajari dari `brankas-esp32` (byte-freeze + gate sebelum deploy).
 ## Beku byte-level (ditegakkan kode, bukan tulisan)
 
 `scripts/freeze.mjs` + `freeze.manifest.json`: SHA-256 per file untuk
-`public/js/*.js` (9), `src/**/*.js` (10), `schema.sql`, `wrangler.jsonc`,
-dan skrip freeze itu sendiri (22 file).
+`public/js/*.js` (9), `src/**/*.ts` (10), `schema.sql`, `wrangler.jsonc`,
+`tsconfig.json`, dan skrip freeze itu sendiri (23 file).
 
 - 1 byte berubah di area beku (termasuk 1 angka) → `--check` exit 1 →
   `npm run gate` merah → `npm run deploy` **batal sebelum wrangler jalan**.
@@ -90,14 +101,13 @@ dan skrip freeze itu sendiri (22 file).
 npm run deploy  =  npm run gate  &&  wrangler deploy
                        |                    |
               npm test + freeze --check   wrangler deploy
-              (31 uji + 22 hash)          (hanya bila gate hijau)
+              (uji arch + chain)          (hanya bila gate hijau)
 ```
 
 - Lokal: `npm run gate` sebelum commit apa pun yang menyentuh kripto/nomor/validasi.
 - Wrangler **tidak dijalankan manual** — selalu lewat `npm run deploy`
   agar deploy tanpa bukti gate hijau tidak mungkin terjadi.
-- `git push` hanya setelah gate hijau. Sync publik (`scripts/sync-publik.sh`)
-  tetap jalan setelahnya; ia menyalin `freeze.manifest.json` apa adanya.
+- `git push` hanya setelah gate hijau.
 
 ## Yang boleh berubah tanpa mencairkan bekunya
 

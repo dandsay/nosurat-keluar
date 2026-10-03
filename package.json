@@ -1,40 +1,24 @@
 {
-  "name": "nosurat-keluar",
+  "name": "agenda-surat-hono",
   "version": "1.0.0",
   "type": "module",
-  "description": "Sistem Register Agenda Surat Keluar Modern & Zero-Knowledge berbasis Cloudflare Workers dan D1 SQLite",
-  "main": "src/index.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/dandsay/nosurat-keluar.git"
-  },
-  "keywords": [
-    "cloudflare-workers",
-    "cloudflare-d1",
-    "zero-knowledge",
-    "agenda-surat",
-    "surat-keluar",
-    "e-government",
-    "open-source",
-    "indonesia"
-  ],
-  "author": "Muhamad Dandy Safitra",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/dandsay/nosurat-keluar/issues"
-  },
-  "homepage": "https://github.com/dandsay/nosurat-keluar#readme",
+  "description": "Clone belajar register_agenda_surat — backend Hono + TypeScript (Workers + D1 + Static Assets). Frontend dipakai ulang tanpa perubahan.",
   "scripts": {
-    "dev": "wrangler dev --ip 0.0.0.0 --port 8787",
-    "test": "node --test tests/*.test.mjs",
+    "dev": "wrangler dev --ip 0.0.0.0 --port 8788",
+    "test": "node --import ./tests/register-loader.mjs --test tests/*.test.mjs",
     "freeze": "node scripts/freeze.mjs",
     "gate": "npm test && node scripts/freeze.mjs --check",
     "deploy": "npm run gate && wrangler deploy",
     "types": "wrangler types",
-    "d1:local": "wrangler d1 execute agenda-surat-db --local --file=./schema.sql",
-    "d1:remote": "wrangler d1 execute agenda-surat-db --remote --file=./schema.sql"
+    "d1:local": "wrangler d1 execute agenda-surat-hono-db --local --file=./schema.sql",
+    "d1:remote": "wrangler d1 execute agenda-surat-hono-db --remote --file=./schema.sql"
   },
   "dependencies": {
+    "hono": "^4.12.4",
     "wrangler": "^4.71.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "typescript": "^5.9.3"
   }
 }

@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "register-agenda-surat",
   "compatibility_date": "2026-09-18",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Utility CLI: Generate PBKDF2-SHA256 Hash untuk Cloudflare Secret APP_PIN_HASH
- * 
+ *
  * Penggunaan:
  *   node scripts/generate-pin-hash.js [pin]
  * Contoh:

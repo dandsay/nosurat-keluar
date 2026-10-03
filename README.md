@@ -110,22 +110,31 @@ nosurat-keluar/
 │   ├── img/                      # Aset Logo & Gambar
 │   └── js/                       # Skrip JavaScript Modular
 │       ├── crypto.js             # Enkripsi & Dekripsi AES-GCM 256-bit + PBKDF2
+│       ├── cipher.js             # Animasi Scramble Portal Login
 │       ├── auth.js               # Manajemen Sesi & Verifikasi PIN Tanpa Bocor Format
 │       ├── agenda.js             # Form Penerbitan Agenda Reguler
+│       ├── mundur.js             # Form Nomor Mundur + Smart-Detect Induk
 │       ├── table.js              # Tabel Terpadu, Search Bulan, Bottom Sheet & Hapus
 │       ├── stats.js              # Perhitungan Statistik Dinamis Klien
+│       ├── chain.js              # Lencana & Riwayat Rantai Berantai
 │       └── export.js             # Fitur Ekspor Data ke Excel/CSV
-├── src/                          # Backend Cloudflare Worker (Edge API)
-│   ├── index.js                  # Entry Point Router & Static Assets
+├── src/                          # Backend Cloudflare Worker (Hono + TypeScript)
+│   ├── index.ts                  # Entry Point Hono + Gatekeeper & Static Assets
+│   ├── types.ts                  # Tipe Env, Sesi & Field Terenkripsi
+│   ├── middleware/
+│   │   └── auth.ts               # Gatekeeper Bearer Session Token
 │   ├── routes/
-│   │   ├── auth.js               # Endpoint Autentikasi PIN + Anti-Bruteforce Delay
-│   │   ├── agenda.js             # Endpoint CRUD & Penomoran Atomic
-│   │   ├── mundur.js             # Endpoint Verifikasi & Sub-Nomor Surat Mundur
-│   │   └── stats.js              # Endpoint Agregat
+│   │   ├── auth.ts               # Endpoint Autentikasi PIN + Anti-Bruteforce Delay
+│   │   ├── agenda.ts             # Endpoint CRUD & Penomoran Atomic
+│   │   ├── mundur.ts             # Endpoint Verifikasi & Sub-Nomor Surat Mundur
+│   │   └── misc.ts               # Endpoint Agregat Statistik & Rantai
 │   └── utils/
-│       └── response.js           # Format Standar JSON Response & Security Headers
+│       ├── auth-crypto.ts        # PBKDF2 100rb + Session HMAC 12 Jam
+│       ├── chain.ts              # Ledger Hash-Chain Append-Only + Verifikasi
+│       └── holidays.ts           # Kalender Kedinasan WIB & Blokir Akhir Pekan
 ├── schema.sql                    # Skema DDL Database SQLite D1
 ├── wrangler.jsonc                # Konfigurasi Cloudflare Workers & Binding D1
+├── tsconfig.json                 # TypeScript Strict Mode
 ├── package.json                  # Dependensi NPM & Script Perintah
 └── .gitignore                    # Berkas Pengecualian Git (.dev.vars, types)
 ```
@@ -137,7 +146,7 @@ nosurat-keluar/
 Siapa pun bisa memasang aplikasi ini untuk kelurahan/instansinya sendiri dalam waktu kurang dari 10 menit:
 
 ### 1. Persiapan Alat
-- Pasang [Node.js](https://nodejs.org/) (versi 18 atau lebih baru).
+- Pasang [Node.js](https://nodejs.org/) (versi 20.19 / 22.12 atau lebih baru, disarankan 24+).
 - Punya akun [Cloudflare](https://dash.cloudflare.com/) (gratis, cukup daftar pakai email).
 
 ### 2. Kloning Repositori & Install
@@ -187,7 +196,7 @@ APP_PIN="PIN_RAHASIA_ANDA"
 ```bash
 npm run dev
 ```
-Buka browser di `http://localhost:8787`. Masukkan PIN Anda dan aplikasi siap dipakai!
+Buka browser di `http://localhost:8788`. Masukkan PIN Anda dan aplikasi siap dipakai!
 
 ### 7. Publikasikan ke Internet (Deploy)
 ```bash

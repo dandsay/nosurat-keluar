@@ -1,10 +1,11 @@
-// Uji BEKU arsitektur register_agenda_surat: gagal bila struktur/keamanan inti berubah.
+// Uji BEKU arsitektur register_agenda_surat_hono (Hono + TS): gagal bila struktur/keamanan inti berubah.
 // Gerbang pengaman: `npm run gate` (== npm test + freeze --check) harus hijau sebelum deploy.
-// Pola dipelajari dari brankas-esp32: byte-freeze + invarian logika, bukan sekadar tulisan.
+// Port dari register_agenda_surat/tests/arch.test.mjs — assertion disesuaikan ke idiom Hono:
+// app.route/sessionGate/c.req.* sebagai pengganti router manual if-pathname + handleX.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { isWeekend, getTodayWIB, addDays } from '../src/utils/holidays.js';
+import { isWeekend, getTodayWIB, addDays } from '../src/utils/holidays.ts';
 
 const jsDir = new URL('../public/js/', import.meta.url);
 const readJS = (f) => readFileSync(new URL(f, jsDir), 'utf8');
@@ -18,17 +19,32 @@ test('daftar modul frontend beku: tepat 9 file, tanpa file baru/liar', () => {
   ]);
 });
 
-test('daftar modul backend beku: router + 5 routes + 4 utils', () => {
-  const routes = readdirSync(new URL('../src/routes/', import.meta.url)).filter((f) => f.endsWith('.js')).sort();
-  assert.deepEqual(routes, ['agenda.js', 'auth.js', 'chain.js', 'mundur.js', 'stats.js']);
-  const utils = readdirSync(new URL('../src/utils/', import.meta.url)).filter((f) => f.endsWith('.js')).sort();
-  assert.deepEqual(utils, ['auth-crypto.js', 'chain.js', 'holidays.js', 'response.js']);
-  const index = readSrc('index.js');
-  assert.match(index, /handleAuthVerify/);
-  assert.match(index, /handleGetAgenda/);
-  assert.match(index, /handleSmartDetectNomorMundur/);
-  assert.match(index, /handleStats/);
-  assert.match(index, /handleChainVerify/);
+test('daftar modul backend beku: index + types + middleware + 4 routes + 3 utils', () => {
+  const routes = readdirSync(new URL('../src/routes/', import.meta.url)).filter((f) => f.endsWith('.ts')).sort();
+  assert.deepEqual(routes, ['agenda.ts', 'auth.ts', 'misc.ts', 'mundur.ts']);
+  const utils = readdirSync(new URL('../src/utils/', import.meta.url)).filter((f) => f.endsWith('.ts')).sort();
+  assert.deepEqual(utils, ['auth-crypto.ts', 'chain.ts', 'holidays.ts']);
+  const mw = readdirSync(new URL('../src/middleware/', import.meta.url)).filter((f) => f.endsWith('.ts')).sort();
+  assert.deepEqual(mw, ['auth.ts']);
+  // Kontrak Hono: mount deklaratif + gatekeeper middleware + health + fallthrough
+  const index = readSrc('index.ts');
+  assert.match(index, /app\.route\("\/api\/auth"/);
+  assert.match(index, /app\.route\("\/api\/agenda"/);
+  assert.match(index, /app\.route\("\/api\/nomor-mundur"/);
+  assert.match(index, /app\.route\("\/api\/stats"/);
+  assert.match(index, /app\.route\("\/api\/chain"/);
+  assert.match(index, /sessionGate/);
+  assert.match(index, /cors\(/);
+  assert.match(index, /\/health/);
+  assert.match(index, /ASSETS/);
+  // TypeScript strict dipin
+  const tsconfig = readRoot('tsconfig.json');
+  assert.match(tsconfig, /"strict":\s*true/);
+  const types = readSrc('types.ts');
+  assert.match(types, /interface Env/);
+  assert.match(types, /D1Database/);
+  assert.match(types, /interface SessionPayload/);
+  assert.match(types, /interface EncryptedFields/);
 });
 
 test('parameter kripto klien beku: AES-GCM-256 + PBKDF2-SHA256 50.000 iterasi + salt dinas', () => {
@@ -45,13 +61,13 @@ test('parameter kripto klien beku: AES-GCM-256 + PBKDF2-SHA256 50.000 iterasi + 
 });
 
 test('parameter kripto server beku: PBKDF2 100.000 + HMAC session 12 jam + timing-safe', () => {
-  const auth = readSrc('utils/auth-crypto.js');
+  const auth = readSrc('utils/auth-crypto.ts');
   assert.match(auth, /computePbkdf2Hash/);
-  assert.match(auth, /iterations = 100000/);
+  assert.match(auth, /iterations\s*=\s*100000/);
   assert.match(auth, /timingSafeEqual/);
   assert.match(auth, /HMAC/);
   assert.match(auth, /SHA-256/);
-  assert.match(auth, /12 \* 3600/);
+  assert.match(auth, /12\s*\*\s*3600/);
   assert.match(auth, /verifySessionToken/);
   assert.match(auth, /createSessionToken/);
   const gen = readRoot('scripts/generate-pin-hash.js');
@@ -64,9 +80,9 @@ test('tanpa PRNG lemah di area beku', () => {
     const src = readJS(`${f}.js`);
     assert.ok(!/Math\.random\s*\(/.test(src), `${f}.js: tanpa Math.random()`);
   }
-  for (const f of ['index', 'routes/agenda', 'routes/mundur', 'routes/auth', 'routes/stats', 'routes/chain', 'utils/auth-crypto', 'utils/chain', 'utils/holidays', 'utils/response']) {
-    const src = readSrc(`${f}.js`);
-    assert.ok(!/Math\.random\s*\(/.test(src), `src/${f}.js: tanpa Math.random()`);
+  for (const f of ['index', 'routes/agenda', 'routes/mundur', 'routes/auth', 'routes/misc', 'middleware/auth', 'utils/auth-crypto', 'utils/chain', 'utils/holidays', 'types']) {
+    const src = readSrc(`${f}.ts`);
+    assert.ok(!/Math\.random\s*\(/.test(src), `src/${f}.ts: tanpa Math.random()`);
   }
 });
 
@@ -96,31 +112,57 @@ test('skema zero-knowledge beku: 6 kolom *_encrypted + indeks unik', () => {
   assert.match(schema, /idx_chain_ref/);
 });
 
-test('permukaan API stabil: endpoint inti ada di router', () => {
-  const index = readSrc('index.js');
-  for (const ep of [
-    '/api/auth/verify', '/api/stats', '/api/agenda/next-number', '/api/agenda',
-    '/api/nomor-mundur/smart-detect', '/api/nomor-mundur/check', '/api/nomor-mundur',
-    '/api/chain/verify', '/api/chain/history', '/api/chain/backfill',
-  ]) {
-    assert.ok(index.includes(ep), `endpoint ${ep} wajib ada`);
+test('permukaan API stabil: mount Hono + endpoint inti + gatekeeper Bearer', () => {
+  const index = readSrc('index.ts');
+  // Mount router (pengganti endpoint string di router manual)
+  for (const m of ['/api/auth', '/api/agenda', '/api/nomor-mundur', '/api/stats', '/api/chain']) {
+    assert.ok(index.includes(m), `mount ${m} wajib ada`);
   }
-  assert.match(index, /startsWith\("\/api\/agenda\/"\)/);
-  assert.match(index, /startsWith\("\/api\/nomor-mundur\/"\)/);
-  // Gatekeeper Bearer wajib: tanpa token -> 401
-  assert.match(index, /Authorization/);
-  assert.match(index, /Bearer /);
-  assert.match(index, /verifySessionToken/);
-  assert.match(index, /401/);
+  // Gatekeeper Bearer wajib: tanpa token -> 401 (di middleware)
+  const gate = readSrc('middleware/auth.ts');
+  assert.match(gate, /Authorization/);
+  assert.match(gate, /Bearer /);
+  assert.match(gate, /verifySessionToken/);
+  assert.match(gate, /401/);
+  assert.match(gate, /\/api\/auth\/verify/);
+  // Sub-path endpoint inti ada di file router masing-masing
+  const auth = readSrc('routes/auth.ts');
+  assert.match(auth, /\/verify/);
+  const agenda = readSrc('routes/agenda.ts');
+  assert.match(agenda, /\/next-number/);
+  assert.match(agenda, /\/:id/);
+  const mundur = readSrc('routes/mundur.ts');
+  assert.match(mundur, /\/smart-detect/);
+  assert.match(mundur, /\/check/);
+  assert.match(mundur, /\/:id/);
+  const misc = readSrc('routes/misc.ts');
+  assert.match(misc, /\/verify/);
+  assert.match(misc, /\/history/);
+  assert.match(misc, /\/backfill/);
+  // Idiom Hono dipakai (bukan req mentah): query/param/json + c.env + c.json
+  for (const f of ['routes/agenda.ts', 'routes/mundur.ts', 'routes/misc.ts']) {
+    const src = readSrc(f);
+    assert.match(src, /c\.env\.DB/);
+    assert.match(src, /c\.json\(/);
+  }
+  assert.match(readSrc('routes/auth.ts'), /c\.env/);
+  assert.match(readSrc('routes/auth.ts'), /c\.json\(/);
+  assert.match(agenda, /c\.req\.query/);
+  assert.match(agenda, /c\.req\.param/);
+  assert.match(agenda, /c\.req\.json/);
+  assert.match(mundur, /c\.req\.query/);
+  assert.match(mundur, /c\.req\.param/);
+  assert.match(mundur, /c\.req\.json/);
   // Static assets fallthrough tetap ada
-  assert.match(index, /env\.ASSETS/);
-  // CORS preflight tetap ada
+  assert.match(index, /ASSETS/);
+  // CORS preflight tetap ada via middleware hono/cors
+  assert.match(index, /cors/);
   assert.match(index, /OPTIONS/);
 });
 
 test('jaring pengaman administrasi beku: weekend + 14 hari + anti-mundur', () => {
-  const agenda = readSrc('routes/agenda.js');
-  const mundur = readSrc('routes/mundur.js');
+  const agenda = readSrc('routes/agenda.ts');
+  const mundur = readSrc('routes/mundur.ts');
   // Weekend block di create agenda, update agenda, create mundur, smart-detect
   assert.match(agenda, /isWeekend\(tgl_surat\)/);
   assert.match(mundur, /isWeekend\(tglSurat\)/);
@@ -144,8 +186,8 @@ test('jaring pengaman administrasi beku: weekend + 14 hari + anti-mundur', () =>
 });
 
 test('penomoran atomic beku: MAX+1 + retry 3x + UNIQUE guard', () => {
-  const agenda = readSrc('routes/agenda.js');
-  const mundur = readSrc('routes/mundur.js');
+  const agenda = readSrc('routes/agenda.ts');
+  const mundur = readSrc('routes/mundur.ts');
   assert.match(agenda, /COALESCE\(MAX\(no_urut\), 0\) \+ 1/);
   assert.match(mundur, /COALESCE\(MAX\(sub_nomor\), 0\) \+ 1/);
   assert.match(agenda, /maxAttempts = 3/);
@@ -207,16 +249,20 @@ test('portal cipher beku: scramble deterministik ala brankas + terpasang di port
   assert.match(html, /shadow-orbit/);
 });
 
-test('auth backend beku: PIN verify + bruteforce delay + response JSON', () => {
-  const authRoute = readSrc('routes/auth.js');
+test('auth backend beku: PIN verify + bruteforce delay + JSON + gatekeeper', () => {
+  const authRoute = readSrc('routes/auth.ts');
   assert.match(authRoute, /verifyPin/);
   assert.match(authRoute, /createSessionToken/);
   assert.match(authRoute, /setTimeout.*500/);
   assert.match(authRoute, /401/);
-  const resp = readSrc('utils/response.js');
-  assert.match(resp, /jsonResponse/);
-  assert.match(resp, /application\/json/);
-  assert.match(resp, /Access-Control-Allow-Origin/);
+  const gate = readSrc('middleware/auth.ts');
+  assert.match(gate, /verifySessionToken/);
+  assert.match(gate, /Bearer /);
+  assert.match(gate, /401/);
+  assert.match(gate, /c\.json\(/);
+  const index = readSrc('index.ts');
+  assert.match(index, /sessionGate/);
+  assert.match(index, /Authorization|Bearer|sessionGate/);
 });
 
 test('ekspor CSV memetakan field dekripsi yang benar (NOMOR + PENGELOLA)', () => {
@@ -231,28 +277,28 @@ test('ekspor CSV memetakan field dekripsi yang benar (NOMOR + PENGELOLA)', () =>
   assert.ok(!/item\.penanggung_jawab[^_]/.test(exp), 'tanpa field penanggung_jawab mentah');
 });
 
-test('konfigurasi wrangler beku: binding DB + assets ./public', () => {
+test('konfigurasi wrangler beku: binding DB + assets ./public + main TS', () => {
   const w = readRoot('wrangler.jsonc');
   assert.match(w, /"binding": "DB"/);
   assert.match(w, /agenda-surat-db/);
   assert.match(w, /"directory": "\.\/public"/);
   assert.match(w, /"binding": "ASSETS"/);
-  assert.match(w, /"main": "src\/index\.js"/);
+  assert.match(w, /"main": "src\/index\.ts"/);
 });
 
 test('rantai berantai beku: util hash + append di semua mutasi + UI mikro', () => {
-  const chain = readSrc('utils/chain.js');
+  const chain = readSrc('utils/chain.ts');
   // Primitif hash dipin: SHA-256 hex, genesis, kanonikal, retry fork
-  assert.match(chain, /GENESIS_HASH = 'GENESIS'/);
-  assert.match(chain, /crypto\.subtle\.digest\('SHA-256'/);
+  assert.match(chain, /GENESIS_HASH = ['"]GENESIS['"]/);
+  assert.match(chain, /crypto\.subtle\.digest\(['"]SHA-256['"]/);
   assert.match(chain, /canonicalPayload/);
   assert.match(chain, /blockHashOf/);
   assert.match(chain, /APPEND_MAX_ATTEMPTS = 5/);
   assert.match(chain, /UNIQUE constraint failed/);
   assert.match(chain, /verifyChain/);
   // Semua 6 mutasi merangkai blok (terbit/koreksi/hapus x reguler/mundur)
-  const agenda = readSrc('routes/agenda.js');
-  const mundur = readSrc('routes/mundur.js');
+  const agenda = readSrc('routes/agenda.ts');
+  const mundur = readSrc('routes/mundur.ts');
   assert.match(agenda, /appendChainBlock/);
   assert.match(mundur, /appendChainBlock/);
   assert.match(agenda, /kind: "terbit"/);
@@ -288,7 +334,7 @@ test('rantai berantai beku: util hash + append di semua mutasi + UI mikro', () =
   assert.match(mundur, /_rantai/);
   assert.match(agenda, /pendek: String\(last\[r\.id\]\)\.slice\(0, 7\)/);
   // Kontrak diagnosis masa depan: kode galat mesin-terbaca + batas verify
-  const chainRoute = readSrc('routes/chain.js');
+  const chainRoute = readSrc('routes/misc.ts');
   assert.match(chainRoute, /BUTUH_BERTAHAP/);
   assert.match(chainRoute, /KUOTA_HABIS/);
   assert.match(chain, /CHAIN_VERIFY_MAX/);
@@ -300,8 +346,8 @@ test('rantai berantai beku: util hash + append di semua mutasi + UI mikro', () =
 });
 
 test('hapus KETAT: hanya terakhir per tahun + anti-yatim + peringatan dulu baru Edit', () => {
-  const agenda = readSrc('routes/agenda.js');
-  const mundur = readSrc('routes/mundur.js');
+  const agenda = readSrc('routes/agenda.ts');
+  const mundur = readSrc('routes/mundur.ts');
   const table = readJS('table.js');
   // Backend: guard MAX per tahun + kode 409 + pesan formal administrator
   assert.match(agenda, /COALESCE\(MAX\(no_urut\), 0\) AS max_no/);
@@ -324,4 +370,20 @@ test('hapus KETAT: hanya terakhir per tahun + anti-yatim + peringatan dulu baru 
   assert.match(table, /Saya Mengerti/);
   assert.match(table, /Nomor Tidak Dapat Dihapus/);
   assert.match(table, /result\.kode === "NOMOR_TERKUNCI"/);
+});
+
+test('kontrak freeze-gate Hono: manifest + scripts npm', () => {
+  const manifest = JSON.parse(readRoot('freeze.manifest.json'));
+  assert.equal(manifest.algo, 'sha256');
+  assert.ok(manifest.files['src/index.ts'], 'index.ts dibekukan');
+  assert.ok(manifest.files['src/middleware/auth.ts'], 'middleware dibekukan');
+  assert.ok(manifest.files['src/types.ts'], 'types dibekukan');
+  assert.ok(manifest.files['tsconfig.json'], 'tsconfig dibekukan');
+  assert.ok(manifest.files['schema.sql'], 'schema dibekukan');
+  const pkg = JSON.parse(readRoot('package.json'));
+  assert.match(pkg.scripts.test, /--test tests\//);
+  assert.match(pkg.scripts.freeze, /freeze\.mjs/);
+  assert.match(pkg.scripts.gate, /npm test/);
+  assert.match(pkg.scripts.gate, /freeze\.mjs --check/);
+  assert.match(pkg.scripts.deploy, /npm run gate/);
 });

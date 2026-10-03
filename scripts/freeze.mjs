@@ -1,4 +1,4 @@
-// scripts/freeze.mjs — BEKU byte-level arsitektur (SHA-256 per file).
+// scripts/freeze.mjs — BEKU byte-level arsitektur Hono+TS (SHA-256 per file).
 //
 //   npm run freeze                # re-baseline manifest setelah perubahan DISETUJUI
 //   node scripts/freeze.mjs --check   # verifikasi (dipakai `npm run gate`)
@@ -6,6 +6,9 @@
 // Aturan: file dalam FROZEN yang berubah 1 byte pun (termasuk 1 angka)
 // menggagalkan gate -> deploy batal. Perubahan sah: review diff,
 // `npm run freeze`, commit manifest + kode bersamaan.
+//
+// Port 1:1 dari register_agenda_surat/scripts/freeze.mjs — glob disesuaikan:
+// `src/**/*.js` -> `src/**/*.ts` + `tsconfig.json` (strict dipin).
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { globSync } from 'node:fs';
@@ -14,15 +17,17 @@ const MANIFEST = new URL('../freeze.manifest.json', import.meta.url);
 
 // Lingkup beku: logika + kripto + infra. BUKAN kosmetik (index.html/css/img).
 // - public/js/*.js      : seluruh modul frontend (kripto, auth, agenda, tabel, ekspor)
-// - src/**/*.js         : seluruh backend Worker (router, routes, utils kripto)
+// - src/**/*.ts         : seluruh backend Worker Hono (index, types, middleware, routes, utils)
 // - schema.sql          : skema D1 (kolom *_encrypted + indeks unik)
 // - wrangler.jsonc      : binding DB + assets
+// - tsconfig.json       : strict:true dipin (jaminan tipe backend)
 // - scripts/freeze.mjs  : skrip ini sendiri (anti-tamper)
 const FROZEN = [
   ...globSync('public/js/*.js'),
-  ...globSync('src/**/*.js'),
+  ...globSync('src/**/*.ts'),
   'schema.sql',
   'wrangler.jsonc',
+  'tsconfig.json',
   'scripts/freeze.mjs',
 ].sort();
 
